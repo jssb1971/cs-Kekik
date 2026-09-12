@@ -90,7 +90,7 @@ class SuperFilmGeldi : MainAPI() {
         val year            = document.selectFirst("div.release a")?.text()?.toIntOrNull()
         val description     = document.selectFirst("div.excerpt p")?.text()?.trim()
         val tags            = document.select("div.categories a").map { it.text() }
-        val rating          = document.selectFirst("span.imdb-rating")?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
+        val rating          = Score.from10(document.selectFirst("span.imdb-rating")?.text()?.trim()?.split(" ")?.first())
         val recommendations = document.select("div.film-content div.existing_item").mapNotNull { it.toSearchResult() }
         val actors          = document.select("div.actor a").map {
             Actor(it.text())
@@ -101,7 +101,7 @@ class SuperFilmGeldi : MainAPI() {
             this.year            = year
             this.plot            = description
             this.tags            = tags
-            this.rating          = rating
+            this.score           = rating
             this.recommendations = recommendations
             addActors(actors)
         }
@@ -129,14 +129,15 @@ class SuperFilmGeldi : MainAPI() {
             Log.d("SFG", "m3uLink » $m3uLink")
 
             callback.invoke(
-                ExtractorLink(
-                    source  = this.name,
-                    name    = this.name,
-                    url     = m3uLink,
-                    referer = iframe,
-                    quality = Qualities.Unknown.value,
-                    isM3u8  = true
-                )
+                newExtractorLink(
+                    source = this.name,
+                    name   = this.name,
+                    url    = m3uLink,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = iframe
+                    this.quality = Qualities.Unknown.value
+                }
             )
         } else {
             loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)

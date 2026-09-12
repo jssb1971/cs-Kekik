@@ -120,7 +120,7 @@ class RecTV : MainAPI() {
                 this.plot      = veri.description
                 this.year      = veri.year
                 this.tags      = veri.genres?.map { it.title }
-                this.rating    = "${veri.rating}".toRatingInt()
+                this.score     = Score.from10("${veri.rating}")
             }
         }
 
@@ -130,7 +130,7 @@ class RecTV : MainAPI() {
                 this.plot      = veri.description
                 this.year      = veri.year
                 this.tags      = veri.genres?.map { it.title }
-                this.rating    = "${veri.rating}".toRatingInt()
+                this.score     = Score.from10("${veri.rating}")
             }
         } else {
             newLiveStreamLoadResponse(veri.title, url, url) {
@@ -145,14 +145,15 @@ class RecTV : MainAPI() {
         if (data.startsWith("http")) {
             Log.d("RCTV", "data » $data")
             callback.invoke(
-                ExtractorLink(
-                    source  = this.name,
-                    name    = this.name,
-                    url     = data,
-                    referer = "https://twitter.com/",
-                    quality = Qualities.Unknown.value,
-                    type    = INFER_TYPE
-                )
+                newExtractorLink(
+                    source = this.name,
+                    name   = this.name,
+                    url    = data,
+                    type   = INFER_TYPE,
+                ) {
+                    this.referer = "https://twitter.com/"
+                    this.quality = Qualities.Unknown.value
+                }
             )
             return true
         }
@@ -162,14 +163,15 @@ class RecTV : MainAPI() {
         for (source in veri.sources) {
             Log.d("RCTV", "source » $source")
             callback.invoke(
-                ExtractorLink(
-                    source  = this.name,
-                    name    = "${this.name} - ${source.type}",
-                    url     = source.url,
-                    referer = "https://twitter.com/",
-                    quality = Qualities.Unknown.value,
-                    type    = if (source.type == "mp4") ExtractorLinkType.VIDEO else ExtractorLinkType.M3U8
-                )
+                newExtractorLink(
+                    source = this.name,
+                    name   = "${this.name} - ${source.type}",
+                    url    = source.url,
+                    type   = if (source.type == "mp4") ExtractorLinkType.VIDEO else ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = "https://twitter.com/"
+                    this.quality = Qualities.Unknown.value
+                }
             )
         }
 

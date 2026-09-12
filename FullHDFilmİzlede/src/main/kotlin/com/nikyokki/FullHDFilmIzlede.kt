@@ -84,7 +84,7 @@ class FullHDFilmIzlede : MainAPI() {
         val description     = document.selectFirst("div.movieDescription h2")?.text()?.trim()
         val year            = document.selectXpath("//span[text()='Yapım Yılı: ']//following-sibling::span").text().split(" ").first().toIntOrNull()
         val tags            = document.selectXpath("//span[text()='Kategori: ']//following-sibling::span").select("a").map { it.text().replace(" izle", "") }
-        val rating          = document.selectFirst("span.imdb")?.text()?.trim()?.toRatingInt()
+        val rating          = Score.from10(document.selectFirst("span.imdb")?.text()?.trim())
         val duration        =
             document.selectXpath("//span[text()='Film Süresi: ']//following-sibling::span").text().split(" ").first().trim().toIntOrNull()
                 ?.times(60)
@@ -96,7 +96,7 @@ class FullHDFilmIzlede : MainAPI() {
             this.plot            = description
             this.year            = year
             this.tags            = tags
-            this.rating          = rating
+            this.score           = rating
             this.duration        = duration
             this.recommendations = recommendations
             addActors(actors)
@@ -132,14 +132,15 @@ class FullHDFilmIzlede : MainAPI() {
                 )
             }
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
-                name = this.name,
-                url = file,
-                referer = "$mainUrl/",
-                quality = Qualities.Unknown.value,
-                isM3u8 = true
-            )
+                name   = this.name,
+                url    = file,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = "$mainUrl/"
+                this.quality = Qualities.Unknown.value
+            }
         )
         /*M3u8Helper.generateM3u8(
             name,

@@ -24,10 +24,11 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.nicehttp.cookies
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.newEpisode
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
@@ -199,8 +200,8 @@ class RoketDizi : MainAPI() {
             val description = document.selectFirst("div.mt-2.text-sm")?.text()?.trim()
             val tags = document.selectFirst("div.poster.hidden h3")?.text()?.split(",")?.map { it }
             val rating =
-                document.selectFirst("div.flex.items-center")?.selectFirst("span.text-white.text-sm")
-                    ?.text()?.trim().toRatingInt()
+                Score.from10(document.selectFirst("div.flex.items-center")?.selectFirst("span.text-white.text-sm")
+                    ?.text()?.trim())
             val actors = document.select("div.global-box h5").map {
                 Actor(it.text())
             }
@@ -225,12 +226,11 @@ class RoketDizi : MainAPI() {
                     println("epSeason: $epSeason")
 
                     episodeses.add(
-                        Episode(
-                            data = epHref,
-                            name = epName,
-                            season = epSeason,
-                            episode = epEpisode
-                        )
+                        newEpisode(epHref) {
+                            this.name = epName
+                            this.season = epSeason
+                            this.episode = epEpisode
+                        }
                     )
                 }
             }
@@ -241,7 +241,7 @@ class RoketDizi : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 addActors(actors)
             }
         } else {
@@ -256,8 +256,8 @@ class RoketDizi : MainAPI() {
             }
             val tags = document.select("div.text-white.text-md.opacity-90.flex.items-center.gap-2.overflow-auto.mt-1 a").map { it.text() }
             val rating =
-                document.selectFirst("div.flex.items-center")?.selectFirst("span.text-white.text-sm")
-                    ?.text()?.trim().toRatingInt()
+                Score.from10(document.selectFirst("div.flex.items-center")?.selectFirst("span.text-white.text-sm")
+                    ?.text()?.trim())
             val actors = mutableListOf<Actor>()
             document.select("div.w-fit.min-w-fit.rounded-lg") .forEach { a ->
                 if (a.selectFirst("span")?.text()?.contains("Aktör") == true) {
@@ -268,7 +268,7 @@ class RoketDizi : MainAPI() {
                 this.posterUrl       = poster
                 this.year            = yil
                 this.plot            = description
-                this.rating          = rating
+                this.score           = rating
                 this.tags            = tags
                 addActors(actors)
             }

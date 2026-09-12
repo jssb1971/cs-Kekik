@@ -17,10 +17,11 @@ import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.INFER_TYPE
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.nodes.Element
 
 class YTSMX : YTS(){
@@ -81,12 +82,12 @@ class YTSMX : YTS(){
             ?.split(" / ")
             ?.map { it.trim() }
         val description= document.selectFirst("#synopsis p")?.text()?.trim()
-        val rating= document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text().toRatingInt()
+        val rating= Score.from10(document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text())
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = description
             this.year = year
-            this.rating=rating
+            this.score =rating
             this.tags = tags
         }
     }
@@ -104,14 +105,15 @@ class YTSMX : YTS(){
                 val quality = it.ownText().substringBefore(".").replace("p", "").toInt()
                 val magnet = generateMagnetLink(TRACKER_LIST_URL, infoHash)
                 callback.invoke(
-                    ExtractorLink(
-                        "$name $quality",
-                        name,
-                        magnet,
-                        "",
-                        quality,
-                        ExtractorLinkType.MAGNET
-                    )
+                    newExtractorLink(
+                        source = "$name $quality",
+                        name   = name,
+                        url    = magnet,
+                        type   = ExtractorLinkType.MAGNET,
+                    ) {
+                        this.referer = ""
+                        this.quality = quality
+                    }
                 )
             }
         }

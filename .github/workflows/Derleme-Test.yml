@@ -1,0 +1,91 @@
+# Bu araç @keyiflerolsun tarafından | @KekikAkademi için yazılmıştır.
+# ! Derleyici.yml sadece master'a push'ta çalışır; bu iş akışı PR'ları ve elle tetiklemeyi derler.
+# ! Hiçbir yere yükleme yapmaz (builds dalına dokunmaz), sadece derlemeyi doğrular.
+name: Derleme Testi
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  DerlemeTesti:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depo Kontrolü
+        uses: actions/checkout@v4.2.2
+
+      - name: JDK 17 Ayarla
+        uses: actions/setup-java@v4.6.0
+        with:
+          distribution: adopt
+          java-version: 17
+
+      - name: Android SDK Ayarla
+        uses: android-actions/setup-android@v3.2.2
+
+      - name: Eklenti Denetimi
+        run: python3 ARACLAR/eklenti.py dogrula
+
+      - name: Eklentileri Derle
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew make makePluginsJson --continue --console=plain 2>&1 | tee derleme.log
+
+      # ! __Temel derlemeye girmediği için şablon, üretilen örnek eklentiyle doğrulanır
+      - name: Şablonu Doğrula
+        run: |
+          set -o pipefail
+          python3 ARACLAR/eklenti.py yeni --ad TemelDeneme --site https://example.com --tip TvSeries --sessiz > sablon.log 2>&1
+          ./gradlew :TemelDeneme:make --console=plain 2>&1 | tee -a sablon.log
+          rm -rf TemelDeneme
+
+      - name: Derleme Sonucu
+        if: always()
+        run: |
+          derlenen=$(ls -1 */build/*.cs3 2>/dev/null | wc -l)
+          modul=$(ls -d */build.gradle.kts 2>/dev/null | wc -l)
+          json=$([ -f build/plugins.json ] && echo "var" || echo "yok")
+
+          {
+            echo "### Derleme çıktıları"
+            echo "- Modül: ${modul}"
+            echo "- Derlenen eklenti (.cs3): ${derlenen}"
+            echo "- build/plugins.json: ${json}"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "::notice::${modul} modül, ${derlenen} .cs3, plugins.json ${json}"
+
+      # ! Hata ayıklamayı kolaylaştırmak için derleme çıktısındaki hataları annotation olarak yayınla
+      - name: Hataları Bildir
+        if: failure()
+        run: |
+          bildir() {
+            satir=$(printf '%s' "$1" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | cut -c1-500)
+            echo "::error::${satir}"
+          }
+
+          [ -f derleme.log ] || touch derleme.log
+          [ -f sablon.log ] || touch sablon.log
+
+          {
+            echo "### Derleme hataları"
+            grep -E "^e: " derleme.log sablon.log | head -30 || true
+            echo "--- son 25 satır (derleme) ---"
+            tail -25 derleme.log
+            echo "--- son 15 satır (şablon) ---"
+            tail -15 sablon.log
+          } >> $GITHUB_STEP_SUMMARY
+
+          grep -E "^e: " derleme.log sablon.log | head -15 | while IFS= read -r satir; do bildir "$satir"; done
+          # ! "Could not resolve" hatasının sebebini (sonraki 6 satır) bildir
+          grep -n -A 6 "Could not resolve" derleme.log | head -40 | while IFS= read -r satir; do [ -n "$satir" ] && bildir "ÇÖZÜMLEME » $satir"; done
+          tail -15 derleme.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "SON » $satir"; done
+          tail -10 sablon.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "ŞABLON » $satir"; done

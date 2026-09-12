@@ -13,6 +13,8 @@ import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.httpsify
 import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -111,7 +113,7 @@ class NetflixMirror : MainAPI() {
         val castList = data.cast?.split(",")?.map { it.trim() } ?: emptyList()
         val cast     = castList.map {ActorData(Actor(it))}
         val genre    = listOf(data.ua.toString()) + (data.genre?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList())
-        val rating   = data.match?.replace("IMDb ", "")?.toRatingInt()
+        val rating   = Score.from10(data.match?.replace("IMDb ", ""))
         val runTime  = convertRuntimeToMinutes(data.runtime.toString())
 
         if (data.episodes.first() == null) {
@@ -146,7 +148,7 @@ class NetflixMirror : MainAPI() {
             year                 = data.year.toIntOrNull()
             tags                 = genre
             actors               = cast
-            this.rating          = rating
+            this.score           = rating
             this.duration        = runTime
             this.recommendations = data.suggest?.map {
                 newMovieSearchResponse("", Id(it.id).toJson()) {
@@ -207,14 +209,15 @@ class NetflixMirror : MainAPI() {
         playlist.forEach { item ->
             item.sources.forEach {
                 callback.invoke(
-                    ExtractorLink(
-                        name,
-                        it.label,
-                        fixUrl(it.file),
-                        "${mainUrl}/",
-                        getQualityFromName(it.file.substringAfter("q=", "")),
-                        true
-                    )
+                    newExtractorLink(
+                        source = name,
+                        name   = it.label,
+                        url    = fixUrl(it.file),
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = "${mainUrl}/"
+                        this.quality = getQualityFromName(it.file.substringAfter("q=", ""))
+                    }
                 )
             }
 

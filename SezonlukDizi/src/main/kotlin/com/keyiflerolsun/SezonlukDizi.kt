@@ -7,6 +7,7 @@ import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import kotlinx.coroutines.runBlocking
 
 class SezonlukDizi : MainAPI() {
     override var mainUrl              = "https://sezonlukdizi6.com"
@@ -58,7 +59,7 @@ class SezonlukDizi : MainAPI() {
         val year        = document.selectFirst("div.extra span")?.text()?.trim()?.split("-")?.first()?.toIntOrNull()
         val description = document.selectFirst("span#tartismayorum-konu")?.text()?.trim()
         val tags        = document.select("div.labels a[href*='tur']").mapNotNull { it.text().trim() }
-        val rating      = document.selectFirst("div.dizipuani a div")?.text()?.trim()?.replace(",", ".").toRatingInt()
+        val rating      = Score.from10(document.selectFirst("div.dizipuani a div")?.text()?.trim()?.replace(",", "."))
         val duration    = document.selectXpath("//span[contains(text(), 'Dk.')]").text().trim().substringBefore(" Dk.").toIntOrNull()
 
         val endpoint    = url.split("/").last()
@@ -95,7 +96,7 @@ class SezonlukDizi : MainAPI() {
             this.year      = year
             this.plot      = description
             this.tags      = tags
-            this.rating    = rating
+            this.score     = rating
             this.duration  = duration
             addActors(actors)
         }
@@ -129,18 +130,21 @@ class SezonlukDizi : MainAPI() {
             Log.d("SZD", "dil»1 | iframe » $iframe")
 
             loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
-                callback.invoke(
-                    ExtractorLink(
-                        source        = "AltYazı - ${veri.baslik}",
-                        name          = "AltYazı - ${veri.baslik}",
-                        url           = link.url,
-                        referer       = link.referer,
-                        quality       = link.quality,
-                        headers       = link.headers,
-                        extractorData = link.extractorData,
-                        type          = link.type
+                runBlocking {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = "AltYazı - ${veri.baslik}",
+                            name   = "AltYazı - ${veri.baslik}",
+                            url    = link.url,
+                            type   = link.type,
+                        ) {
+                            this.referer = link.referer
+                            this.quality = link.quality
+                            this.headers = link.headers
+                            this.extractorData = link.extractorData
+                        }
                     )
-                )
+                }
             }
         }
 
@@ -165,18 +169,21 @@ class SezonlukDizi : MainAPI() {
             Log.d("SZD", "dil»0 | iframe » $iframe")
 
             loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
-                callback.invoke(
-                    ExtractorLink(
-                        source        = "Dublaj - ${veri.baslik}",
-                        name          = "Dublaj - ${veri.baslik}",
-                        url           = link.url,
-                        referer       = link.referer,
-                        quality       = link.quality,
-                        headers       = link.headers,
-                        extractorData = link.extractorData,
-                        type          = link.type
+                runBlocking {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = "Dublaj - ${veri.baslik}",
+                            name   = "Dublaj - ${veri.baslik}",
+                            url    = link.url,
+                            type   = link.type,
+                        ) {
+                            this.referer = link.referer
+                            this.quality = link.quality
+                            this.headers = link.headers
+                            this.extractorData = link.extractorData
+                        }
                     )
-                )
+                }
             }
         }
 

@@ -8,6 +8,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import kotlinx.coroutines.runBlocking
 
 class FullHDFilm : MainAPI() {
     override var mainUrl              = "https://fullhdfilm.site"
@@ -72,7 +73,7 @@ class FullHDFilm : MainAPI() {
         val description = document.selectFirst("div[itemprop='description']")?.text()?.substringAfter("⭐")?.substringAfter("izleyin.")?.substringAfter("konusu:")?.trim()
         val year        = document.selectFirst("span[itemprop='dateCreated'] a")?.text()?.trim()?.toIntOrNull()
         val tags        = document.select("div.detail ul.bottom li:nth-child(5) span a").map { it.text() }
-        val rating      = document.selectFirst("ul.right li:nth-child(2) span")?.text()?.trim()?.toRatingInt()
+        val rating      = Score.from10(document.selectFirst("ul.right li:nth-child(2) span")?.text()?.trim())
         val duration    = document.selectFirst("span[itemprop='duration']")?.text()?.split(" ")?.first()?.trim()?.toIntOrNull()
         val actors      = document.select("sc[itemprop='actor'] span").map { Actor(it.text()) }
         val trailer     = fixUrlNull(document.selectFirst("[property='og:video']")?.attr("content"))
@@ -114,7 +115,7 @@ class FullHDFilm : MainAPI() {
                 this.plot      = description
                 this.year      = year
                 this.tags      = tags
-                this.rating    = rating
+                this.score     = rating
                 this.duration  = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -125,7 +126,7 @@ class FullHDFilm : MainAPI() {
                 this.plot      = description
                 this.year      = year
                 this.tags      = tags
-                this.rating    = rating
+                this.score     = rating
                 this.duration  = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -170,16 +171,20 @@ class FullHDFilm : MainAPI() {
             Log.d("FHDF", "iframeLink » $iframeLink")
 
             loadExtractor(iframeLink, "${mainUrl}/", subtitleCallback) { extractor ->
-                callback.invoke (
-                    ExtractorLink (
-                        source  = "$partName - ${extractor.source}",
-                        name    = "$partName - ${extractor.name}",
-                        url     = extractor.url,
-                        referer = extractor.referer,
-                        quality = extractor.quality,
-                        type    = extractor.type
+                // ? newExtractorLink suspend; loadExtractor geri çağrımı suspend değil
+                runBlocking {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = "$partName - ${extractor.source}",
+                            name   = "$partName - ${extractor.name}",
+                            url    = extractor.url,
+                            type   = extractor.type,
+                        ) {
+                            this.referer = extractor.referer
+                            this.quality = extractor.quality
+                        }
                     )
-                )
+                }
             }
         }
 

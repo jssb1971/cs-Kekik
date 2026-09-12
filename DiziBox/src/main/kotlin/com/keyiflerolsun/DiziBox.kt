@@ -130,7 +130,7 @@ class DiziBox : MainAPI() {
         val description = document.selectFirst("div.tv-story p")?.text()?.trim()
         val year        = document.selectFirst("a[href*='/yil/']")?.text()?.trim()?.toIntOrNull()
         val tags        = document.select("a[href*='/tur/']").map { it.text() }
-        val rating      = document.selectFirst("span.label-imdb b")?.text()?.trim()?.toRatingInt()
+        val rating      = Score.from10(document.selectFirst("span.label-imdb b")?.text()?.trim())
         val actors      = document.select("a[href*='/oyuncu/']").map { Actor(it.text()) }
         val trailer     = document.selectFirst("div.tv-overview iframe")?.attr("src")
 
@@ -166,7 +166,7 @@ class DiziBox : MainAPI() {
             this.plot      = description
             this.year      = year
             this.tags      = tags
-            this.rating    = rating
+            this.score     = rating
             addActors(actors)
             addTrailer(trailer)
         }
@@ -197,14 +197,15 @@ class DiziBox : MainAPI() {
             val vidUrl        = Regex("""file: '(.*)',""").find(decryptedDoc.html())?.groupValues?.get(1) ?: return false
 
             callback.invoke(
-                ExtractorLink(
-                    source  = this.name,
-                    name    = this.name,
-                    url     = vidUrl,
-                    referer = vidUrl,
-                    quality = getQualityFromName("4k"),
-                    isM3u8  = true
-                )
+                newExtractorLink(
+                    source = this.name,
+                    name   = this.name,
+                    url    = vidUrl,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = vidUrl
+                    this.quality = getQualityFromName("4k")
+                }
             )
 
         } else if (iframe.contains("/player/moly/moly.php")) {

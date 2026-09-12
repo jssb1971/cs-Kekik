@@ -87,7 +87,7 @@ class HDFilmCehennemi : MainAPI() {
         val year        = document.selectFirst("div.post-info-year-country a")?.text()?.trim()?.toIntOrNull()
         val tvType      = if (document.select("div.seasons").isEmpty()) TvType.Movie else TvType.TvSeries
         val description = document.selectFirst("article.post-info-content > p")?.text()?.trim()
-        val rating      = document.selectFirst("div.post-info-imdb-rating span")?.text()?.substringBefore("(")?.trim()?.toRatingInt()
+        val rating      = Score.from10(document.selectFirst("div.post-info-imdb-rating span")?.text()?.substringBefore("(")?.trim())
         val actors      = document.select("div.post-info-cast a").map {
             Actor(it.selectFirst("strong")!!.text(), it.select("img").attr("data-src"))
         }
@@ -122,7 +122,7 @@ class HDFilmCehennemi : MainAPI() {
                 this.year            = year
                 this.plot            = description
                 this.tags            = tags
-                this.rating          = rating
+                this.score           = rating
                 this.recommendations = recommendations
                 addActors(actors)
                 addTrailer(trailer)
@@ -135,7 +135,7 @@ class HDFilmCehennemi : MainAPI() {
                 this.year            = year
                 this.plot            = description
                 this.tags            = tags
-                this.rating          = rating
+                this.score           = rating
                 this.recommendations = recommendations
                 addActors(actors)
                 addTrailer(trailer)
@@ -149,15 +149,16 @@ class HDFilmCehennemi : MainAPI() {
         val subData   = script.substringAfter("tracks: [").substringBefore("]")
 
         callback.invoke(
-            ExtractorLink(
-                source  = source,
-                name    = source,
-                url     = base64Decode(videoData),
-                referer = "${mainUrl}/",
-                quality = Qualities.Unknown.value,
-                type    = INFER_TYPE
-                // isM3u8  = true
-            )
+            newExtractorLink(
+                source = source,
+                name   = source,
+                url    = base64Decode(videoData),
+                type   = INFER_TYPE
+                // isM3u8  = true,
+            ) {
+                this.referer = "${mainUrl}/"
+                this.quality = Qualities.Unknown.value
+            }
         )
 
         AppUtils.tryParseJson<List<SubSource>>("[${subData}]")?.filter { it.kind == "captions" }?.map {

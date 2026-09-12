@@ -71,12 +71,12 @@ open class YTS : MainAPI() {
         val tags = document.selectFirst("#mobile-movie-info > h2:nth-child(3)")?.text()?.trim()
             ?.split(" / ")
             ?.map { it.trim() }
-        val rating= document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text().toRatingInt()
+        val rating= Score.from10(document.select("#movie-info > div.bottom-info > div:nth-child(2) > span:nth-child(2)").text())
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
                 this.plot = title
                 this.year = year
-                this.rating=rating
+                this.score =rating
                 this.tags = tags
             }
     }
@@ -87,14 +87,15 @@ open class YTS : MainAPI() {
             val href=getURL(it.attr("href").replace(" ","%20"))
             val quality =it.ownText().substringBefore(".").replace("p","").toInt()
             callback.invoke(
-                ExtractorLink(
-                    "$name $quality",
-                    name,
-                    fixUrl( href),
-                    "",
-                    quality,
-                    INFER_TYPE
-                )
+                newExtractorLink(
+                    source = "$name $quality",
+                    name   = name,
+                    url    = fixUrl( href),
+                    type   = INFER_TYPE,
+                ) {
+                    this.referer = ""
+                    this.quality = quality
+                }
             )
         }
         return true

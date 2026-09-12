@@ -23,10 +23,13 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.JsUnpacker
 import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.newEpisode
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.nodes.Element
 
 class DiziGom : MainAPI() {
@@ -127,7 +130,7 @@ class DiziGom : MainAPI() {
         val description = document.selectFirst("div.serieDescription p")?.text()?.trim()
         val year = document.selectFirst("div.airDateYear a")?.text()?.trim()?.toIntOrNull()
         val tags = document.select("div.genreList a").map { it.text() }
-        val rating = document.selectFirst("div.score")?.text()?.trim()?.toRatingInt()
+        val rating = Score.from10(document.selectFirst("div.score")?.text()?.trim())
         val duration = document.select("div.serieMetaInformation").select("div.totalSession")
             .last()?.text()?.split(" ")?.first()?.trim()?.toIntOrNull()
         val actors = document.select("div.owl-stage a")
@@ -145,12 +148,11 @@ class DiziGom : MainAPI() {
             val epEp = it.selectFirst("div.baslik")?.text()?.split(" ")?.get(2)?.replace(".", "")
                 ?.toIntOrNull()
             episodeses.add(
-                Episode(
-                    data = epHref,
-                    name = epName,
-                    season = epSeason,
-                    episode = epEp
-                )
+                newEpisode(epHref) {
+                    this.name = epName
+                    this.season = epSeason
+                    this.episode = epEp
+                }
             )
         }
 
@@ -160,7 +162,7 @@ class DiziGom : MainAPI() {
             this.plot = description
             this.tags = tags
             this.duration = duration
-            this.rating = rating
+            this.score  = rating
             addActors(actors)
         }
 
@@ -201,14 +203,15 @@ class DiziGom : MainAPI() {
 
         val source: Go = objectMapper.readValue(sourceJ!!)
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
-                name = this.name,
-                url = source.file,
-                referer = "$mainUrl/",
-                quality = getQualityFromName(source.label),
-                isM3u8 = true
-            )
+                name   = this.name,
+                url    = source.file,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = "$mainUrl/"
+                this.quality = getQualityFromName(source.label)
+            }
         )
 
         return true

@@ -12,8 +12,9 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.7.3")
         // Cloudstream gradle plugin which makes everything work and builds plugins
-        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
+        // ! JitPack'te master-SNAPSHOT metadata'sı bozuk; çalışan sürüme pinlendi
+        classpath("com.github.recloudstream:gradle:81b1d424d2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20")
     }
 }
 
@@ -51,13 +52,13 @@ subprojects {
         }
 
         compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
+            sourceCompatibility = JavaVersion.VERSION_11
+            targetCompatibility = JavaVersion.VERSION_11
         }
 
         tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile> {
             compilerOptions {
-                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11) // ! CloudStream stub'ları JVM 11 ile derleniyor
                 freeCompilerArgs.addAll(
                     listOf(
                         "-Xno-call-assertions",
@@ -73,6 +74,7 @@ subprojects {
     dependencies {
         val cloudstream by configurations
         val implementation by configurations
+        val compileOnly by configurations
 
         // Stubs for all Cloudstream classes
         cloudstream("com.lagradost:cloudstream3:pre-release")
@@ -83,6 +85,7 @@ subprojects {
         implementation(kotlin("stdlib"))                                              // Kotlin'in temel kütüphanesi
         implementation("com.github.Blatzar:NiceHttp:0.4.11")                          // HTTP kütüphanesi
         implementation("org.jsoup:jsoup:1.18.3")                                      // HTML ayrıştırıcı
+        compileOnly("org.jspecify:jspecify:1.0.1")                                    // jsoup sonuç tiplerindeki jspecify ek açıklamaları (Kotlin 2.4 bunları okur)
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0")   // Kotlin için Jackson JSON kütüphanesi
         implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0")          // JSON-nesne dönüştürme kütüphanesi
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")      // Kotlin için asenkron işlemler

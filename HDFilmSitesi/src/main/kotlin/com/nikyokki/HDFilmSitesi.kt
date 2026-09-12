@@ -20,11 +20,14 @@ import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.newEpisode
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.nodes.Element
 
 class HDFilmSitesi : MainAPI() {
@@ -92,8 +95,7 @@ class HDFilmSitesi : MainAPI() {
         val tags =
             document.select("a[rel='category']").map { it.text().substringBefore(" Filmleri") }
         val rating =
-            document.selectFirst("div.puanlar span")?.text()?.trim()?.substringAfter("IMDb")
-                .toRatingInt()
+            Score.from10(document.selectFirst("div.puanlar span")?.text()?.trim()?.substringAfter("IMDb"))
         val duration =
             document.selectFirst("span[itemprop='duration']")?.text()?.split(" ")?.first()?.trim()
                 ?.toIntOrNull()
@@ -127,12 +129,11 @@ class HDFilmSitesi : MainAPI() {
                 }
 
                 episodes.add(
-                    Episode(
-                        data = iframeLink,
-                        name = "${sz_num}. Sezon ${ep_num}. Bölüm",
-                        season = sz_num,
-                        episode = ep_num
-                    )
+                    newEpisode(iframeLink) {
+                        this.name = "${sz_num}. Sezon ${ep_num}. Bölüm"
+                        this.season = sz_num
+                        this.episode = ep_num
+                    }
                 )
             }
 
@@ -141,7 +142,7 @@ class HDFilmSitesi : MainAPI() {
                 this.plot = description
                 this.year = year
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 this.duration = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -152,7 +153,7 @@ class HDFilmSitesi : MainAPI() {
                 this.plot = description
                 this.year = year
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 this.duration = duration
                 addActors(actors)
                 addTrailer(trailer)
@@ -218,24 +219,26 @@ class HDFilmSitesi : MainAPI() {
                     name2 = audioList[1].groupValues.getOrNull(1).toString()
                 }
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = this.name,
-                        name = "$resolution - $name1",
-                        url = uri,
-                        referer = uri,
-                        quality = getQualityFromName("4k"),
-                        isM3u8 = true
-                    )
+                        name   = "$resolution - $name1",
+                        url    = uri,
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = uri
+                        this.quality = getQualityFromName("4k")
+                    }
                 )
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = this.name,
-                        name = "$resolution - $name2",
-                        url = uriv2,
-                        referer = uriv2,
-                        quality = getQualityFromName("4k"),
-                        isM3u8 = true
-                    )
+                        name   = "$resolution - $name2",
+                        url    = uriv2,
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = uriv2
+                        this.quality = getQualityFromName("4k")
+                    }
                 )
             }
         } else if (data.contains("vidlop")) {
@@ -247,14 +250,15 @@ class HDFilmSitesi : MainAPI() {
                 referer = "${mainUrl}/"
             ).parsedSafe<VidLop>()?.securedLink ?: return false
             callback.invoke(
-                ExtractorLink(
+                newExtractorLink(
                     source = this.name,
-                    name = this.name,
-                    url = vidUrl,
-                    referer = data,
-                    quality = Qualities.Unknown.value,
-                    isM3u8 = true
-                )
+                    name   = this.name,
+                    url    = vidUrl,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = data
+                    this.quality = Qualities.Unknown.value
+                }
             )
             loadExtractor(data, subtitleCallback, callback)
         }
@@ -319,36 +323,39 @@ class HDFilmSitesi : MainAPI() {
                         name2 = audioList[1].groupValues.getOrNull(1).toString()
                     }
                     callback.invoke(
-                        ExtractorLink(
+                        newExtractorLink(
                             source = this.name,
-                            name = "$resolution - $name1",
-                            url = uri,
-                            referer = uri,
-                            quality = getQualityFromName("4k"),
-                            isM3u8 = true
-                        )
+                            name   = "$resolution - $name1",
+                            url    = uri,
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = uri
+                            this.quality = getQualityFromName("4k")
+                        }
                     )
                     callback.invoke(
-                        ExtractorLink(
+                        newExtractorLink(
                             source = this.name,
-                            name = "$resolution - $name2",
-                            url = uriv2,
-                            referer = uriv2,
-                            quality = getQualityFromName("4k"),
-                            isM3u8 = true
-                        )
+                            name   = "$resolution - $name2",
+                            url    = uriv2,
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = uriv2
+                            this.quality = getQualityFromName("4k")
+                        }
                     )
 
                 }*/
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = this.name,
-                        name = this.name,
-                        url = m3uLink,
-                        referer = "$mainUrl/",
-                        quality = getQualityFromName("4k"),
-                        isM3u8 = true
-                    )
+                        name   = this.name,
+                        url    = m3uLink,
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = "$mainUrl/"
+                        this.quality = getQualityFromName("4k")
+                    }
                 )
                 loadExtractor(iframeLink, "$mainUrl/", subtitleCallback, callback)
             } else if (iframeLink.contains("vidlop")) {
@@ -359,14 +366,15 @@ class HDFilmSitesi : MainAPI() {
                     referer = "${mainUrl}/"
                 ).parsedSafe<VidLop>()?.securedLink ?: return false
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = this.name,
-                        name = this.name,
-                        url = vidUrl,
-                        referer = data,
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = true
-                    )
+                        name   = this.name,
+                        url    = vidUrl,
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = data
+                        this.quality = Qualities.Unknown.value
+                    }
                 )
                 loadExtractor(data, subtitleCallback, callback)
             }

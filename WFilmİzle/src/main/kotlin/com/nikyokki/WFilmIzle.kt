@@ -19,11 +19,13 @@ import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.nodes.Element
 
 class WFilmIzle : MainAPI() {
@@ -103,8 +105,8 @@ class WFilmIzle : MainAPI() {
         Log.d("WFI", "year: $year")
         val tags = document.select("div.categories a").map { it.text() }
         Log.d("WFI", "tags: $tags")
-        val rating = document.select("div.imdb").last()?.text()?.replace("IMDb Puanı:","")?.split("/")
-            ?.first()?.trim()?.toRatingInt()
+        val rating = Score.from10(document.select("div.imdb").last()?.text()?.replace("IMDb Puanı:","")?.split("/")
+            ?.first()?.trim())
         Log.d("WFI", "rating: " + document.selectFirst("div.imdb").toString())
         val actors = document.select("div.actor a").map { it.text() }
         Log.d("WFI", "actors: $actors")
@@ -115,7 +117,7 @@ class WFilmIzle : MainAPI() {
             this.plot = description
             this.year = year
             this.tags = tags
-            this.rating = rating
+            this.score  = rating
             addActors(actors)
             addTrailer(trailer)
         }
@@ -163,19 +165,20 @@ class WFilmIzle : MainAPI() {
             val master = updatedVideoData.videoSource ?: ""
             Log.d("WFI", "Master: $master")
             callback.invoke(
-                ExtractorLink(
+                newExtractorLink(
                     source = name,
-                    name = name,
-                    url = master,
-                    referer = mainUrl,
-                    headers = mapOf(
+                    name   = name,
+                    url    = master,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = mainUrl
+                    this.quality = Qualities.Unknown.value
+                    this.headers = mapOf(
                         "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox",
                         "Accept" to "*/*", "X-Requested-With" to "XMLHttpRequest",
                         "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8"
-                    ),
-                    quality = Qualities.Unknown.value,
-                    isM3u8 = true
-                )
+                    )
+                }
             )
         }
         //loadExtractor(iframe.toS, "${mainUrl}/", subtitleCallback, callback)

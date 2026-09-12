@@ -69,7 +69,7 @@ class SinemaCX : MainAPI() {
         val year        = document.selectFirst("div.f-bilgi ul.detay a[href*='yapim']")?.text()?.toIntOrNull()
         val description = document.selectFirst("div.f-bilgi div.ackl")?.text()?.trim()
         val tags        = document.select("div.f-bilgi div.tur a").map { it.text() }
-        val rating      = document.selectFirst("b#puandegistir")?.text()?.trim()?.toRatingInt()
+        val rating      = Score.from10(document.selectFirst("b#puandegistir")?.text()?.trim())
         val duration    = Regex("""Süre: </span>(\d+) Dakika</li>""").find(document.html())?.groupValues?.get(1)?.toIntOrNull()
         val actors      = document.select("li.oync li.oyuncu-k").map {
             Actor(it.selectFirst("span.isim")!!.text(), it.selectFirst("img")!!.attr("data-src"))
@@ -80,7 +80,7 @@ class SinemaCX : MainAPI() {
             this.year      = year
             this.plot      = description
             this.tags      = tags
-            this.rating    = rating
+            this.score     = rating
             this.duration  = duration
             addActors(actors)
         }
@@ -123,14 +123,15 @@ class SinemaCX : MainAPI() {
             ).parsedSafe<Panel>()?.securedLink ?: return false
 
             callback.invoke(
-                ExtractorLink(
-                    source  = this.name,
-                    name    = this.name,
-                    url     = vidUrl,
-                    referer = iframe,
-                    quality = Qualities.Unknown.value,
-                    isM3u8  = true
-                )
+                newExtractorLink(
+                    source = this.name,
+                    name   = this.name,
+                    url    = vidUrl,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = iframe
+                    this.quality = Qualities.Unknown.value
+                }
             )
         } else {
             loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)

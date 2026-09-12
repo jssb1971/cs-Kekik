@@ -18,9 +18,9 @@ import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
 import org.jsoup.nodes.Element
 
 class `4KFilmIzlesene` : MainAPI() {
@@ -102,8 +102,7 @@ class `4KFilmIzlesene` : MainAPI() {
             document.selectFirst("span[itemprop='dateCreated']")?.text()?.trim()?.toIntOrNull()
         val tags = document.select("div.category a[href*='-filmleri/']").map { it.text() }
         val rating =
-            document.selectFirst("div.imdb-count")?.text()?.split(" ")?.first()?.trim()
-                ?.toRatingInt()
+            Score.from10(document.selectFirst("div.imdb-count")?.text()?.split(" ")?.first()?.trim())
         val actors = document.select("div.actors").map { it.text() }
         val trailer = document.selectFirst("div.container iframe")?.attr("src")
 
@@ -112,7 +111,7 @@ class `4KFilmIzlesene` : MainAPI() {
             this.plot = description
             this.year = year
             this.tags = tags
-            this.rating = rating
+            this.score  = rating
             addActors(actors)
             addTrailer(trailer)
         }

@@ -25,14 +25,15 @@ open class SetPrime : ExtractorApi() {
         Log.d("Kekik_${this.name}", "m3uLink » $m3uLink")
 
         callback.invoke(
-            ExtractorLink(
-                source  = this.name,
-                name    = if (partKey != "") "${this.name} - $partKey" else this.name,
-                url     = m3uLink,
-                referer = url,
-                quality = Qualities.Unknown.value,
-                isM3u8  = true
-            )
+            newExtractorLink(
+                source = this.name,
+                name   = if (partKey != "") "${this.name} - $partKey" else this.name,
+                url    = m3uLink,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = url
+                this.quality = Qualities.Unknown.value
+            }
         )
     }
 }

@@ -19,14 +19,15 @@ open class TurboImgz : ExtractorApi() {
         Log.d("Kekik_${this.name}", "videoLink » $videoLink")
 
         callback.invoke(
-            ExtractorLink(
-                source  = "${this.name} - " + url.substringBefore("||").uppercase(),
-                name    = "${this.name} - " + url.substringBefore("||").uppercase(),
-                url     = videoLink,
-                referer = extRef,
-                quality = Qualities.Unknown.value,
-                isM3u8  = true
-            )
+            newExtractorLink(
+                source = "${this.name} - " + url.substringBefore("||").uppercase(),
+                name   = "${this.name} - " + url.substringBefore("||").uppercase(),
+                url    = videoLink,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = extRef
+                this.quality = Qualities.Unknown.value
+            }
         )
     }
 }

@@ -17,6 +17,8 @@ import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class GolgeTV : MainAPI() {
     override var name = "GolgeTV"
@@ -100,15 +102,16 @@ class GolgeTV : MainAPI() {
         )
         headers = headers.filterKeys { it != "0" }
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
-                name = content.isim,
-                url = content.link,
-                referer = headers["Referer"] ?: "",
-                quality = Qualities.Unknown.value,
-                headers = headers,
-                isM3u8 = true
-            )
+                name   = content.isim,
+                url    = content.link,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = headers["Referer"] ?: ""
+                this.quality = Qualities.Unknown.value
+                this.headers = headers
+            }
         )
         return true
     }
