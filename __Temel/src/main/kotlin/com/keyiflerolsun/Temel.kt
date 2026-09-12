@@ -151,7 +151,7 @@ class __AD__ : MainAPI() {
     }
 
     private fun Element.toRecommendationResult(): SearchResponse? {
-        val title     = this.selectFirst("a")?.attr("title").ifBlank { this.selectFirst("h3, a")?.text() } ?: return null
+        val title     = this.selectFirst("a")?.attr("title")?.ifBlank { this.selectFirst("h3, a")?.text() } ?: return null
         val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
         val posterUrl = fixUrlNull(
             this.selectFirst("img")?.let { it.attr("data-src").ifBlank { it.attr("src") } }

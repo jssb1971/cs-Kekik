@@ -32,10 +32,12 @@ fun String?.toSure(): Int? = this?.let { metin ->
 
 /**
  * Görsel adresini bulur » lazy-load kullanan sitelerde data-src, yoksa src.
- * ?  Kullanım : element.toGorsel()
+ * ?  Kullanım : fixUrlNull(element.toGorsel())   // ! göreli adresi eklenti içinde tamamla
  */
-fun Element.toGorsel(): String? = this.selectFirst("img")?.let { img ->
-    fixUrlNull(img.attr("data-src").ifBlank { img.attr("src") })
+fun Element.toGorsel(): String? {
+    val img = this.selectFirst("img") ?: return null
+
+    return img.attr("data-src").ifBlank { img.attr("src") }.trim().ifBlank { null }
 }
 
 /**
