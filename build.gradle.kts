@@ -74,6 +74,7 @@ subprojects {
     dependencies {
         val cloudstream by configurations
         val implementation by configurations
+        val compileOnly by configurations
 
         // Stubs for all Cloudstream classes
         cloudstream("com.lagradost:cloudstream3:pre-release")
