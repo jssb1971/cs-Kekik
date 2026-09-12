@@ -42,8 +42,18 @@ jobs:
       - name: Derleme Sonucu
         if: always()
         run: |
-          echo "### Derleme çıktıları" >> $GITHUB_STEP_SUMMARY
-          echo "Derlenen eklenti: $(ls -1 */build/*.cs3 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+          derlenen=$(ls -1 */build/*.cs3 2>/dev/null | wc -l)
+          modul=$(ls -d */build.gradle.kts 2>/dev/null | wc -l)
+          json=$([ -f build/plugins.json ] && echo "var" || echo "yok")
+
+          {
+            echo "### Derleme çıktıları"
+            echo "- Modül: ${modul}"
+            echo "- Derlenen eklenti (.cs3): ${derlenen}"
+            echo "- build/plugins.json: ${json}"
+          } >> $GITHUB_STEP_SUMMARY
+
+          echo "::notice::${modul} modül, ${derlenen} .cs3, plugins.json ${json}"
 
       # ! Hata ayıklamayı kolaylaştırmak için derleme çıktısındaki hataları annotation olarak yayınla
       - name: Hataları Bildir
