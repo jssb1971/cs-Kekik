@@ -62,4 +62,6 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
           grep -E "^e: " derleme.log | head -15 | while IFS= read -r satir; do bildir "$satir"; done
-          tail -25 derleme.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "SON » $satir"; done
+          # ! "Could not resolve" hatasının sebebini (sonraki 6 satır) bildir
+          grep -n -A 6 "Could not resolve" derleme.log | head -40 | while IFS= read -r satir; do [ -n "$satir" ] && bildir "ÇÖZÜMLEME » $satir"; done
+          tail -15 derleme.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "SON » $satir"; done
