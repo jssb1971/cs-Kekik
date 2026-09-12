@@ -36,10 +36,23 @@ jobs:
       - name: Eklentileri Derle
         run: |
           chmod +x gradlew
-          ./gradlew make makePluginsJson
+          set -o pipefail
+          ./gradlew make makePluginsJson 2>&1 | tee derleme.log
 
       - name: Derleme Sonucu
         if: always()
         run: |
           echo "### Derleme çıktıları" >> $GITHUB_STEP_SUMMARY
-          ls -1 */build/*.cs3 2>/dev/null | wc -l | xargs -I{} echo "{} eklenti derlendi" >> $GITHUB_STEP_SUMMARY
+          echo "Derlenen eklenti: $(ls -1 */build/*.cs3 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
+
+      # ! Hata ayıklamayı kolaylaştırmak için hataları annotation olarak yayınla
+      - name: Hataları Bildir
+        if: failure()
+        run: |
+          {
+            echo "### Derleme hataları"
+            grep -E "^e: |^w: .*[Ee]rror|error:|FAILURE:|What went wrong|Execution failed" derleme.log | head -40 || true
+          } >> $GITHUB_STEP_SUMMARY
+          grep -E "^e: " derleme.log | head -15 | while IFS= read -r satir; do
+            echo "::error::${satir}"
+          done
