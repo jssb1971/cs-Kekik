@@ -589,6 +589,7 @@ def komut_yeni(args: argparse.Namespace) -> int:
         return 1
 
     yer_tutucular = {
+        "{" + "ad}"      : ad,
         "__AD__"         : ad,
         "__SITE__"       : site,
         "__PAKET__"      : args.paket,
@@ -691,6 +692,7 @@ def main(argv: list[str] | None = None) -> int:
     yeni.add_argument("--hedef", default=str(KOK), help="Üretilecek dizin (varsayılan: depo kökü)")
     yeni.add_argument("--zorla", action="store_true", help="Var olan klasörün üzerine yaz")
     yeni.add_argument("--kuru", action="store_true", help="Dosya yazmadan ne yapacağını göster")
+    yeni.add_argument("--sessiz", action="store_true", help="Üretim sonrası denetim özetini gösterme")
     yeni.set_defaults(func=komut_yeni)
 
     args = parser.parse_args(argv)

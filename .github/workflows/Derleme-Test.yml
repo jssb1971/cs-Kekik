@@ -39,6 +39,14 @@ jobs:
           set -o pipefail
           ./gradlew make makePluginsJson --continue --console=plain 2>&1 | tee derleme.log
 
+      # ! __Temel derlemeye girmediği için şablon, üretilen örnek eklentiyle doğrulanır
+      - name: Şablonu Doğrula
+        run: |
+          set -o pipefail
+          python3 ARACLAR/eklenti.py yeni --ad TemelDeneme --site https://example.com --tip TvSeries --sessiz > sablon.log 2>&1
+          ./gradlew :TemelDeneme:make --console=plain 2>&1 | tee -a sablon.log
+          rm -rf TemelDeneme
+
       - name: Derleme Sonucu
         if: always()
         run: |
@@ -64,14 +72,20 @@ jobs:
             echo "::error::${satir}"
           }
 
+          [ -f derleme.log ] || touch derleme.log
+          [ -f sablon.log ] || touch sablon.log
+
           {
             echo "### Derleme hataları"
-            grep -E "^e: " derleme.log | head -30 || true
-            echo "--- son 25 satır ---"
+            grep -E "^e: " derleme.log sablon.log | head -30 || true
+            echo "--- son 25 satır (derleme) ---"
             tail -25 derleme.log
+            echo "--- son 15 satır (şablon) ---"
+            tail -15 sablon.log
           } >> $GITHUB_STEP_SUMMARY
 
-          grep -E "^e: " derleme.log | head -15 | while IFS= read -r satir; do bildir "$satir"; done
+          grep -E "^e: " derleme.log sablon.log | head -15 | while IFS= read -r satir; do bildir "$satir"; done
           # ! "Could not resolve" hatasının sebebini (sonraki 6 satır) bildir
           grep -n -A 6 "Could not resolve" derleme.log | head -40 | while IFS= read -r satir; do [ -n "$satir" ] && bildir "ÇÖZÜMLEME » $satir"; done
           tail -15 derleme.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "SON » $satir"; done
+          tail -10 sablon.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "ŞABLON » $satir"; done
