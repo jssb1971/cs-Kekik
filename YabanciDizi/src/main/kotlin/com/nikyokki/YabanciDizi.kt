@@ -21,11 +21,12 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -139,7 +140,7 @@ class YabanciDizi : MainAPI() {
                 tags.add(it.text().trim())
             }
         }
-        val rating = document.selectFirst("div.color-imdb")?.text()?.trim()?.toRatingInt()
+        val rating = Score.from10(document.selectFirst("div.color-imdb")?.text()?.trim())
         val duration =
             document.selectXpath("//div[text()='Süre']//following-sibling::div").text().trim()
                 .split(" ").first().toIntOrNull()
@@ -157,12 +158,11 @@ class YabanciDizi : MainAPI() {
                         fixUrlNull(episodeElement.selectFirst("h6 a")?.attr("href")) ?: return@ep
                     epEpisode++
                     episodes.add(
-                        Episode(
-                            data = epHref,
-                            name = "${epSeason}. Sezon ${epEpisode}. Bölüm",
-                            season = epSeason,
-                            episode = epEpisode
-                        )
+                        newEpisode(epHref) {
+                            this.name = "${epSeason}. Sezon ${epEpisode}. Bölüm"
+                            this.season = epSeason
+                            this.episode = epEpisode
+                        }
                     )
                 }
             }
@@ -172,7 +172,7 @@ class YabanciDizi : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 this.duration = duration
                 addActors(actors)
                 addTrailer("https://www.youtube.com/embed/${trailer}")
@@ -183,7 +183,7 @@ class YabanciDizi : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 this.duration = duration
                 addActors(actors)
                 addTrailer("https://www.youtube.com/embed/${trailer}")
@@ -228,18 +228,19 @@ class YabanciDizi : MainAPI() {
                         ?: ""
                 Log.d("YBD", vidUrl)
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
-                        name = name,
-                        url = vidUrl,
-                        referer = mainUrl,
-                        headers = mapOf(
+                        name   = name,
+                        url    = vidUrl,
+                        type   = ExtractorLinkType.M3U8,
+                    ) {
+                        this.referer = mainUrl
+                        this.quality = Qualities.Unknown.value
+                        this.headers = mapOf(
                             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0",
                             "Referer" to mainUrl
-                        ),
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = true
-                    )
+                        )
+                    }
                 )
                 val aa = app.get(
                     vidUrl, referer = "$mainUrl/", headers =
@@ -249,18 +250,19 @@ class YabanciDizi : MainAPI() {
                 for (sonUrl in urlList) {
                     Log.d("YBD", "sonUrl: ${sonUrl.link} -- ${sonUrl.resolution}")
                     callback.invoke(
-                        ExtractorLink(
+                        newExtractorLink(
                             source = "$name -- ${sonUrl.resolution}",
-                            name = "$name -- ${sonUrl.resolution}",
-                            url = sonUrl.link,
-                            referer = vidUrl,
-                            headers = mapOf(
+                            name   = "$name -- ${sonUrl.resolution}",
+                            url    = sonUrl.link,
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = vidUrl
+                            this.quality = getQualityFromName(sonUrl.resolution)
+                            this.headers = mapOf(
                                 "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:135.0) Gecko/20100101 Firefox/135.0",
                                 "Referer" to vidUrl
-                            ),
-                            quality = getQualityFromName(sonUrl.resolution),
-                            isM3u8 = true
-                        )
+                            )
+                        }
                     )
                 }
             } else if (name.contains("VidMoly")) {

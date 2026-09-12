@@ -154,7 +154,7 @@ def eklenti_topla(klasor: Path) -> Eklenti | None:
             eklenti.eklenti_yolu = dosya
 
         # ? Ana sayfa sınıfı: class X : MainAPI()  »  LiveStreamAPI/ExtractorApi hariç
-        if ana_api := re.search(r"class\s+(\w+)\s*:\s*(MainAPI|LiveStreamAPI)\s*\(", icerik):
+        if ana_api := re.search(r"class\s+`?(\w+)`?\s*:\s*(MainAPI|LiveStreamAPI)\s*\(", icerik):
             eklenti.api_adi  = ana_api[1]
             eklenti.api_yolu = dosya
 
@@ -293,7 +293,7 @@ def eklenti_denetle(eklenti: Eklenti) -> list[tuple[str, str]]:
         icerik = _oku(eklenti.api_yolu)
 
         if not eklenti.main_url:
-            bulgular.append((HATA, f"{eklenti.api_yolu.name} içinde 'override var mainUrl' yok"))
+            bulgular.append((UYARI, f"{eklenti.api_yolu.name} içinde 'override var mainUrl' yok » KONTROL.py bu eklentiyi izleyemez"))
         else:
             if eklenti.main_url.endswith("/"):
                 bulgular.append((UYARI, f"mainUrl sonunda '/' var, KONTROL.py bunu siler » {eklenti.main_url}"))
@@ -311,7 +311,8 @@ def eklenti_denetle(eklenti: Eklenti) -> list[tuple[str, str]]:
             bulgular.append((BILGI, "hasQuickSearch = false ama quickSearch fonksiyonu tanımlı (kullanılmaz)"))
 
         if not re.search(r"override\s+suspend\s+fun\s+search\s*\(", icerik):
-            bulgular.append((HATA, "search() fonksiyonu yok"))
+            seviye = BILGI if "Live" in eklenti.tipler else UYARI
+            bulgular.append((seviye, "search() override edilmemiş (varsayılan boş liste döner)"))
 
         if not re.search(r"override\s+suspend\s+fun\s+loadLinks\s*\(", icerik):
             bulgular.append((HATA, "loadLinks() fonksiyonu yok"))
@@ -325,7 +326,7 @@ def eklenti_denetle(eklenti: Eklenti) -> list[tuple[str, str]]:
     for paket in eklenti.paketler:
         beklenen = eklenti.yol / "src" / "main" / "kotlin" / Path(*paket.split("."))
         if not beklenen.exists():
-            bulgular.append((HATA, f"'{paket}' paketi ile klasör yolu uyuşmuyor » {beklenen.relative_to(KOK)} yok"))
+            bulgular.append((UYARI, f"'{paket}' paketi ile klasör yolu uyuşmuyor (derlemeyi bozmaz, IDE uyarır) » {beklenen.relative_to(KOK)} yok"))
 
     if len(eklenti.paketler) > 1:
         bulgular.append((BILGI, f"Birden fazla paket kullanılmış: {', '.join(sorted(eklenti.paketler))}"))

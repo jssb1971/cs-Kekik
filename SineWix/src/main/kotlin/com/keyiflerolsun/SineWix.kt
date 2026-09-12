@@ -98,7 +98,7 @@ class SineWix : MainAPI() {
             val description     = media.overview
             val year            = media.releaseDate.split("-").first().toIntOrNull()
             val tags            = media.genres?.map { it.name }
-            val rating          = "${media.voteAverage}".toRatingInt()
+            val rating          = Score.from10("${media.voteAverage}")
             val recommendations = media.relateds?.map { newMovieSearchResponse(it.title, "?type=${it.type}&id=${it.id}", TvType.Movie) { this.posterUrl = it.posterPath } }
             val actors          = media.casterslist?.map { Actor(it.name, it.profilePath) }
 
@@ -107,7 +107,7 @@ class SineWix : MainAPI() {
                 this.plot            = description
                 this.year            = year
                 this.tags            = tags
-                this.rating          = rating
+                this.score           = rating
                 this.recommendations = recommendations
                 addActors(actors)
             }
@@ -123,7 +123,7 @@ class SineWix : MainAPI() {
             val description     = media.overview
             val year            = media.firstAirDate.split("-").first().toIntOrNull()
             val tags            = media.genres?.map { it.name }
-            val rating          = "${media.voteAverage}".toRatingInt()
+            val rating          = Score.from10("${media.voteAverage}")
             val recommendations = media.relateds?.map { newMovieSearchResponse(it.name, "?type=${it.type}&id=${it.id}", TvType.Movie) { this.posterUrl = it.posterPath } }
             val actors          = media.casterslist?.map { Actor(it.name, it.profilePath) }
 
@@ -146,7 +146,7 @@ class SineWix : MainAPI() {
                 this.plot            = description
                 this.year            = year
                 this.tags            = tags
-                this.rating          = rating
+                this.score           = rating
                 this.recommendations = recommendations
                 addActors(actors)
             }
@@ -166,14 +166,15 @@ class SineWix : MainAPI() {
                     loadExtractor(video.link, twitter, subtitleCallback, callback)
                 } else {
                     callback.invoke(
-                        ExtractorLink(
-                            source  = this.name,
-                            name    = this.name,
-                            url     = video.link,
-                            referer = twitter,
-                            quality = Qualities.Unknown.value,
-                            type    = INFER_TYPE
-                        )
+                        newExtractorLink(
+                            source = this.name,
+                            name   = this.name,
+                            url    = video.link,
+                            type   = INFER_TYPE,
+                        ) {
+                            this.referer = twitter
+                            this.quality = Qualities.Unknown.value
+                        }
                     )
                 }
 
@@ -184,14 +185,15 @@ class SineWix : MainAPI() {
                 loadExtractor(data.substringAfter("&source="), twitter, subtitleCallback, callback)
             } else {
                 callback.invoke(
-                    ExtractorLink(
-                        source  = this.name,
-                        name    = this.name,
-                        url     = data.substringAfter("&source="),
-                        referer = twitter,
-                        quality = Qualities.Unknown.value,
-                        type    = INFER_TYPE
-                    )
+                    newExtractorLink(
+                        source = this.name,
+                        name   = this.name,
+                        url    = data.substringAfter("&source="),
+                        type   = INFER_TYPE,
+                    ) {
+                        this.referer = twitter
+                        this.quality = Qualities.Unknown.value
+                    }
                 )
             }
 

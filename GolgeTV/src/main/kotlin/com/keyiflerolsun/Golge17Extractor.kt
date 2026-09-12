@@ -9,6 +9,7 @@ import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -49,14 +50,15 @@ open class Golge17 : ExtractorApi() {
         val streamLink = parseHtml(resp)
         Log.d("GOLGE17", "streamLink: $streamLink")
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
-                name = content.isim,
-                url = streamLink,
-                referer = link,
-                quality = Qualities.Unknown.value,
-                isM3u8 = true,
-                headers = mapOf(
+                name   = content.isim,
+                url    = streamLink,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = link
+                this.quality = Qualities.Unknown.value
+                this.headers = mapOf(
                     "origin" to link,
                     "Accept" to "*/*",
                     "Cache-Control" to "max-age=0",
@@ -75,7 +77,7 @@ open class Golge17 : ExtractorApi() {
                     extractDataWithRegex("=window\\['atob'\\]\\(\"(.*?)\"", trim),
                     Base64.DEFAULT
                 )
-            )
+            }
             val extractMultipleDataWithRegex = extractMultipleDataWithRegex(
                 extractDataWithRegex("window.stnbnb=\\[(.*?)\\]", trim)!!
             )

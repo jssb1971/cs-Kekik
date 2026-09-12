@@ -23,10 +23,11 @@ import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesLoadResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.util.regex.Pattern
@@ -169,7 +170,7 @@ class DiziMag : MainAPI() {
         val year =
             document.selectFirst("h1 span")?.text()?.substringAfter("(")?.substringBefore(")")
                 ?.toIntOrNull()
-        val rating = document.selectFirst("span.color-imdb")?.text()?.trim()?.toRatingInt()
+        val rating = Score.from10(document.selectFirst("span.color-imdb")?.text()?.trim())
         val duration =
             document.selectXpath("//span[text()='Süre']//following-sibling::p").text().trim()
                 .split(" ").first().toIntOrNull()
@@ -194,12 +195,11 @@ class DiziMag : MainAPI() {
                     val epEpisode = blm++
                     val epSeason = szn
                     episodeses.add(
-                        Episode(
-                            data = epHref,
-                            name = epName,
-                            season = epSeason,
-                            episode = epEpisode
-                        )
+                        newEpisode(epHref) {
+                            this.name = epName
+                            this.season = epSeason
+                            this.episode = epEpisode
+                        }
                     )
                 }
                 szn++
@@ -210,7 +210,7 @@ class DiziMag : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 addActors(actors)
                 addTrailer("https://www.youtube.com/embed/${trailer}")
             }
@@ -220,7 +220,7 @@ class DiziMag : MainAPI() {
                 this.year = year
                 this.plot = description
                 this.tags = tags
-                this.rating = rating
+                this.score  = rating
                 this.duration = duration
                 addActors(actors)
                 addTrailer("https://www.youtube.com/embed/${trailer}")
@@ -284,26 +284,28 @@ class DiziMag : MainAPI() {
                     val matchResult = regex.find(m3u8Content.text())
                     val m3uUrl = matchResult?.groupValues?.get(1) ?: ""
 //                    callback.invoke(
-//                        ExtractorLink(
+//                        newExtractorLink(
 //                            source = this.name,
-//                            name = this.name,
-//                            headers = mapOf("Accept" to "*/*", "Referer" to iframe),
-//                            url = m3uUrl,
-//                            referer = iframe,
-//                            quality = Qualities.Unknown.value,
-//                            isM3u8 = true
-//                        )
+//                            name   = this.name,
+//                            url    = m3uUrl,
+//                            type   = ExtractorLinkType.M3U8,
+//                        ) {
+//                            this.referer = iframe
+//                            this.quality = Qualities.Unknown.value
+//                            this.headers = mapOf("Accept" to "*/*", "Referer" to iframe)
+//                        }
 //                    )
                     callback.invoke(
-                        ExtractorLink(
+                        newExtractorLink(
                             source = this.name,
-                            name = this.name,
-                            headers = mapOf("Accept" to "*/*", "Referer" to iframe),
-                            url = jsonData.videoLocation,
-                            referer = iframe,
-                            quality = Qualities.Unknown.value,
-                            isM3u8 = true
-                        )
+                            name   = this.name,
+                            url    = jsonData.videoLocation,
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = iframe
+                            this.quality = Qualities.Unknown.value
+                            this.headers = mapOf("Accept" to "*/*", "Referer" to iframe)
+                        }
                     )
                 }
             }

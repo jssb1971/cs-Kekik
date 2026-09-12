@@ -21,10 +21,10 @@ import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.Score
 import org.jsoup.nodes.Element
 
 class FilmKovasi : MainAPI() {
@@ -97,8 +97,8 @@ class FilmKovasi : MainAPI() {
         val description = document.selectFirst("div#film-aciklama")?.text()?.trim()
         var year = document.selectFirst("div.release a")?.text()?.trim()?.toIntOrNull()
         val tags = document.select("div#listelements a").map { it.text() }
-        var rating = document.selectFirst("div.imdb")?.text()?.replace("IMDb Puanı:", "")
-            ?.split("/")?.first()?.trim()?.toRatingInt()
+        var rating = Score.from10(document.selectFirst("div.imdb")?.text()?.replace("IMDb Puanı:", "")
+            ?.split("/")?.first()?.trim())
         var actors = document.select("div.actor a").map { it.text() }
         val trailer = document.selectFirst("div.film-afis iframe")?.attr("src")
         val listItems = document.select("div.list-item")
@@ -112,7 +112,7 @@ class FilmKovasi : MainAPI() {
         }
         document.select("div#listelements div").forEach {
             if (it.text().contains("IMDb:")) {
-                rating = it.text().trim().split(" ").last().toRatingInt()
+                rating = Score.from10(it.text().trim().split(" ").last())
             }
         }
 
@@ -121,7 +121,7 @@ class FilmKovasi : MainAPI() {
             this.plot = description
             this.year = year
             this.tags = tags
-            this.rating = rating
+            this.score  = rating
             addActors(actors)
             addTrailer(trailer)
         }
@@ -188,14 +188,15 @@ class FilmKovasi : MainAPI() {
         Log.d("FKV", "sonLink » $sonLink")
 
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink(
                 source = this.name,
-                name = this.name,
-                url = sonLink,
-                referer = iframe,
-                quality = Qualities.Unknown.value,
-                type = ExtractorLinkType.M3U8
-            )
+                name   = this.name,
+                url    = sonLink,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = iframe
+                this.quality = Qualities.Unknown.value
+            }
         )
     }
 

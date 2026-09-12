@@ -47,14 +47,15 @@ open class VidMoxy : ExtractorApi() {
         Log.d("Kekik_${this.name}", "decoded » $decoded")
 
         callback.invoke(
-            ExtractorLink(
-                source  = this.name,
-                name    = this.name,
-                url     = decoded,
-                referer = extRef,
-                quality = Qualities.Unknown.value,
-                isM3u8  = true
-            )
+            newExtractorLink(
+                source = this.name,
+                name   = this.name,
+                url    = decoded,
+                type   = ExtractorLinkType.M3U8,
+            ) {
+                this.referer = extRef
+                this.quality = Qualities.Unknown.value
+            }
         )
     }
 }

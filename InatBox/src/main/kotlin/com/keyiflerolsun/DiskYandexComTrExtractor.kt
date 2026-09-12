@@ -37,14 +37,15 @@ class DiskYandexComTr : ExtractorApi() {
             val masterPlaylistUrl = matcher.group()
 
             // Create an ExtractorLink for the master-playlist.m3u8 URL
-            val extractorLink = ExtractorLink(
-                source  = "Yandex Disk",
-                name    = "Yandex Disk",
-                url     = masterPlaylistUrl,
-                referer = referer ?: "",
-                quality = Qualities.Unknown.value,
-                type    = ExtractorLinkType.M3U8
-            )
+            val extractorLink = newExtractorLink(
+                    source = "Yandex Disk",
+                    name   = "Yandex Disk",
+                    url    = masterPlaylistUrl,
+                    type   = ExtractorLinkType.M3U8,
+                ) {
+                    this.referer = referer ?: ""
+                    this.quality = Qualities.Unknown.value
+                }
 
             // Invoke the callback with the ExtractorLink
             callback.invoke(extractorLink)

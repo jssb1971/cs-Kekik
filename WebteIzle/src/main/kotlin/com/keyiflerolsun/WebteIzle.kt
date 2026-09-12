@@ -23,12 +23,13 @@ import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
-import com.lagradost.cloudstream3.toRatingInt
 import com.lagradost.cloudstream3.utils.AppUtils
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup
@@ -127,7 +128,7 @@ class WebteIzle : MainAPI() {
         val year        = document.selectXpath("//td[contains(text(), 'Vizyon')]/following-sibling::td").text().trim().split(" ").last().toIntOrNull()
         val description = document.selectFirst("blockquote")?.text()?.trim()
         val tags        = document.selectXpath("//a[@itemgroup='genre']").map { it.text() }
-        val rating      = document.selectFirst("div.detail")?.text()?.trim()?.replace(",", ".").toRatingInt()
+        val rating      = Score.from10(document.selectFirst("div.detail")?.text()?.trim()?.replace(",", "."))
         val duration    = document.selectXpath("//td[contains(text(), 'Süre')]/following-sibling::td").text().trim().split(" ").first().toIntOrNull()
         val trailer     = document.selectFirst("button#fragman")?.attr("data-ytid")
         val actors      = document.selectXpath("//div[@data-tab='oyuncular']//a").map {
@@ -139,7 +140,7 @@ class WebteIzle : MainAPI() {
             this.year      = year
             this.plot      = description
             this.tags      = tags
-            this.rating    = rating
+            this.score     = rating
             this.duration  = duration
             addTrailer("https://www.youtube.com/embed/${trailer}")
             addActors(actors)
@@ -231,14 +232,15 @@ class WebteIzle : MainAPI() {
                     }
 
                     callback.invoke(
-                        ExtractorLink(
-                            source  = "$dilAd - ${this.name}",
-                            name    = "$dilAd - ${this.name}",
-                            url     = m3uLink,
-                            referer = "${mainUrl}/",
-                            quality = getQualityFromName("1440p"),
-                            isM3u8  = true
-                        )
+                        newExtractorLink(
+                            source = "$dilAd - ${this.name}",
+                            name   = "$dilAd - ${this.name}",
+                            url    = m3uLink,
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = "${mainUrl}/"
+                            this.quality = getQualityFromName("1440p")
+                        }
                     )
 
                     continue
@@ -251,14 +253,15 @@ class WebteIzle : MainAPI() {
                     }
 
                     callback.invoke(
-                        ExtractorLink(
-                            source  = "$dilAd - ${this.name}",
-                            name    = "$dilAd - ${this.name}",
-                            url     = fixUrl(decoded),
-                            referer = "${mainUrl}/",
-                            quality = Qualities.Unknown.value,
-                            isM3u8  = true
-                        )
+                        newExtractorLink(
+                            source = "$dilAd - ${this.name}",
+                            name   = "$dilAd - ${this.name}",
+                            url    = fixUrl(decoded),
+                            type   = ExtractorLinkType.M3U8,
+                        ) {
+                            this.referer = "${mainUrl}/"
+                            this.quality = Qualities.Unknown.value
+                        }
                     )
                 }
 
@@ -266,16 +269,17 @@ class WebteIzle : MainAPI() {
                     Log.d("WBTI", "iframe » $iframe")
                     loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
                         callback.invoke(
-                            ExtractorLink(
-                                source        = "$dilAd - ${link.name}",
-                                name          = "$dilAd - ${link.name}",
-                                url           = link.url,
-                                referer       = link.referer,
-                                quality       = link.quality,
-                                headers       = link.headers,
-                                extractorData = link.extractorData,
-                                type          = link.type
-                            )
+                            newExtractorLink(
+                                source = "$dilAd - ${link.name}",
+                                name   = "$dilAd - ${link.name}",
+                                url    = link.url,
+                                type   = link.type,
+                            ) {
+                                this.referer = link.referer
+                                this.quality = link.quality
+                                this.headers = link.headers
+                                this.extractorData = link.extractorData
+                            }
                         )
                     }
                 }

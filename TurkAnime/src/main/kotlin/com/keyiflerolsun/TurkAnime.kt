@@ -94,7 +94,7 @@ class TurkAnime : MainAPI() {
         val description = document.selectFirst("div#detayPaylas p.ozet")?.text()?.trim()
         val year        = document.selectFirst("div#detayPaylas a[href*='yil/']")?.attr("href")?.substringAfter("yil/")?.toIntOrNull()
         val tags        = document.select("div#animedetay a[href*='anime-turu']").map { it.text() }
-        val rating      = document.selectFirst("span.puan")?.text()?.trim()?.toRatingInt()
+        val rating      = Score.from10(document.selectFirst("span.puan")?.text()?.trim())
 
         val bolumlerUrl = fixUrlNull(document.selectFirst("a[data-url*='ajax/bolumler&animeId=']")?.attr("data-url")) ?: return null
         val bolumlerDoc = app.get(
@@ -125,7 +125,7 @@ class TurkAnime : MainAPI() {
             this.plot      = description
             this.year      = year
             this.tags      = tags
-            this.rating    = rating
+            this.score     = rating
         }
     }
 
@@ -165,14 +165,15 @@ class TurkAnime : MainAPI() {
 
         //     if (m3uLink != null) {
         //         callback.invoke(
-        //             ExtractorLink(
-        //                 source  = this.name,
-        //                 name    = this.name,
-        //                 url     = m3uLink,
-        //                 referer = "${mainVideo}",
-        //                 quality = Qualities.Unknown.value,
-        //                 isM3u8  = true,
-        //             )
+        //             newExtractorLink(
+        //                 source = this.name,
+        //                 name   = this.name,
+        //                 url    = m3uLink,
+        //                 type   = ExtractorLinkType.M3U8,
+        //             ) {
+        //                 this.referer = "${mainVideo}"
+        //                 this.quality = Qualities.Unknown.value
+        //             }
         //         )
         //     }
         // }

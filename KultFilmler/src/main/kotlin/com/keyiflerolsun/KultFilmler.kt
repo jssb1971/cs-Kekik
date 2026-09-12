@@ -80,7 +80,7 @@ class KultFilmler : MainAPI() {
         val poster          = fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
         val description     = document.selectFirst("div.description")?.text()?.trim()
         var tags            = document.select("ul.post-categories a").map { it.text() }
-        val rating          = document.selectFirst("div.imdb-count")?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
+        val rating          = Score.from10(document.selectFirst("div.imdb-count")?.text()?.trim()?.split(" ")?.first())
         val year            = Regex("""(\d+)""").find(document.selectFirst("li.release")?.text()?.trim() ?: "")?.groupValues?.get(1)?.toIntOrNull()
         val duration        = Regex("""(\d+)""").find(document.selectFirst("li.time")?.text()?.trim() ?: "")?.groupValues?.get(1)?.toIntOrNull()
         val recommendations = document.select("div.movie-box").mapNotNull { it.toSearchResult() }
@@ -111,7 +111,7 @@ class KultFilmler : MainAPI() {
                 this.year            = year
                 this.plot            = description
                 this.tags            = tags
-                this.rating          = rating
+                this.score           = rating
                 this.duration        = duration
                 this.recommendations = recommendations
                 addActors(actors)
@@ -123,7 +123,7 @@ class KultFilmler : MainAPI() {
             this.year            = year
             this.plot            = description
             this.tags            = tags
-            this.rating          = rating
+            this.score           = rating
             this.duration        = duration
             this.recommendations = recommendations
             addActors(actors)
@@ -175,14 +175,15 @@ class KultFilmler : MainAPI() {
                 Log.d("Kekik_VidMoly", "m3uLink » $m3uLink")
 
                 callback.invoke(
-                    ExtractorLink(
-                        source  = "VidMoly",
-                        name    = "VidMoly",
-                        url     = m3uLink,
-                        referer = "https://vidmoly.to/",
-                        quality = Qualities.Unknown.value,
-                        type    = INFER_TYPE
-                    )
+                    newExtractorLink(
+                        source = "VidMoly",
+                        name   = "VidMoly",
+                        url    = m3uLink,
+                        type   = INFER_TYPE,
+                    ) {
+                        this.referer = "https://vidmoly.to/"
+                        this.quality = Qualities.Unknown.value
+                    }
                 )
             } else {
                 loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)

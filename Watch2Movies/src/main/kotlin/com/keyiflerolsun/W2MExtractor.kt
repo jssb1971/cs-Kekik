@@ -14,6 +14,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -59,16 +60,21 @@ window.chrome = { runtime: {} };
 
                         Thread {
                             fetchAndCheckResponse(url, headers) { sourceUrl, headers ->
+                                // ? newExtractorLink askıya alınabilir (suspend) bir fonksiyon,
+                                // ? WebView geri çağrısı askıya alınamadığı için runBlocking ile sarılır
                                 callback.invoke(
-                                    ExtractorLink(
-                                        source  = this@W2MExtractor.name,
-                                        name    = this@W2MExtractor.name,
-                                        url     = sourceUrl,
-                                        referer = headers["Referer"] ?: headers["referer"] ?: mainUrl,
-                                        quality = Qualities.Unknown.value,
-                                        type    = ExtractorLinkType.M3U8,
-                                        headers = headers
-                                    )
+                                    runBlocking {
+                                        newExtractorLink(
+                                            source = this@W2MExtractor.name,
+                                            name   = this@W2MExtractor.name,
+                                            url    = sourceUrl,
+                                            type   = ExtractorLinkType.M3U8,
+                                        ) {
+                                            this.referer = headers["Referer"] ?: headers["referer"] ?: mainUrl
+                                            this.quality = Qualities.Unknown.value
+                                            this.headers = headers
+                                        }
+                                    }
                                 )
                             }
                         }.start()
