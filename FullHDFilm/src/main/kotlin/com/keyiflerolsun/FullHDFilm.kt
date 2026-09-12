@@ -8,6 +8,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import kotlinx.coroutines.runBlocking
 
 class FullHDFilm : MainAPI() {
     override var mainUrl              = "https://fullhdfilm.site"
@@ -170,17 +171,20 @@ class FullHDFilm : MainAPI() {
             Log.d("FHDF", "iframeLink » $iframeLink")
 
             loadExtractor(iframeLink, "${mainUrl}/", subtitleCallback) { extractor ->
-                callback.invoke (
-                    newExtractorLink(
-                        source = "$partName - ${extractor.source}",
-                        name   = "$partName - ${extractor.name}",
-                        url    = extractor.url,
-                        type   = extractor.type,
-                    ) {
-                        this.referer = extractor.referer
-                        this.quality = extractor.quality
-                    }
-                )
+                // ? newExtractorLink suspend; loadExtractor geri çağrımı suspend değil
+                runBlocking {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = "$partName - ${extractor.source}",
+                            name   = "$partName - ${extractor.name}",
+                            url    = extractor.url,
+                            type   = extractor.type,
+                        ) {
+                            this.referer = extractor.referer
+                            this.quality = extractor.quality
+                        }
+                    )
+                }
             }
         }
 
