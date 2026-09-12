@@ -42,11 +42,46 @@ KONUMSAL_ALANLAR = ("source", "name", "url", "referer", "quality", "isM3u8", "he
 # ----------------------------------------------------------------------------------------------------------
 #  Yardımcılar
 # ----------------------------------------------------------------------------------------------------------
+def yorum_sonu(metin: str, baslangic: int) -> int | None:
+    """baslangic konumunda yorum varsa sonraki konumu, yoksa None döner."""
+    if metin.startswith("//", baslangic):
+        son = metin.find("\n", baslangic)
+        return len(metin) if son == -1 else son
+
+    if metin.startswith("/*", baslangic):
+        derinlik = 1
+        i = baslangic + 2
+        while i < len(metin) and derinlik:
+            if metin.startswith("/*", i):
+                derinlik += 1
+                i += 2
+            elif metin.startswith("*/", i):
+                derinlik -= 1
+                i += 2
+            else:
+                i += 1
+        return i
+
+    return None
+
+
 def dize_sonu(metin: str, baslangic: int) -> int:
     """baslangic konumundaki tırnaktan sonraki tırnağın konumunu döner (kaçış destekli)."""
     if metin[baslangic:baslangic + 3] == '"""':
-        son = metin.find('"""', baslangic + 3)
-        return len(metin) - 1 if son == -1 else son + 2
+        # ! Ham dizede bitiş, tırnak dizisinin SON üçlüsüdür; fazladan tırnaklar içeriktir
+        i = baslangic + 3
+        while i < len(metin):
+            if metin[i] == '"':
+                j = i
+                while j < len(metin) and metin[j] == '"':
+                    j += 1
+                if j - i >= 3:
+                    return j - 1
+                i = j
+                continue
+            i += 1
+
+        return len(metin) - 1
 
     tirnak = metin[baslangic]
     i = baslangic + 1
@@ -67,7 +102,10 @@ def eslesmeli_parantez(metin: str, acilis: int) -> int:
     i = acilis
     while i < len(metin):
         karakter = metin[i]
-        if karakter == '"':
+        yorum = yorum_sonu(metin, i)
+        if yorum is not None:
+            i = yorum
+        elif karakter in ('"', "'"):
             i = dize_sonu(metin, i)
         elif karakter == "(":
             derinlik += 1
@@ -89,7 +127,10 @@ def ust_duzey_ayir(icerik: str) -> list[str]:
 
     while i < len(icerik):
         karakter = icerik[i]
-        if karakter == '"':
+        yorum = yorum_sonu(icerik, i)
+        if yorum is not None:
+            i = yorum
+        elif karakter in ('"', "'"):
             i = dize_sonu(icerik, i)
         elif karakter in "([{":
             derinlik += 1

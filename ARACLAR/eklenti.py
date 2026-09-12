@@ -229,6 +229,104 @@ DEPRECATED_API = (
 )
 
 
+def _yorum_sonu(metin: str, konum: int) -> int | None:
+    """konumda yorum başlıyorsa yorumdan sonraki konumu, yoksa None döner."""
+    if metin.startswith("//", konum):
+        son = metin.find("\n", konum)
+        return len(metin) if son == -1 else son
+
+    if metin.startswith("/*", konum):
+        derinlik = 1
+        i = konum + 2
+        while i < len(metin) and derinlik:
+            if metin.startswith("/*", i):
+                derinlik += 1
+                i += 2
+            elif metin.startswith("*/", i):
+                derinlik -= 1
+                i += 2
+            else:
+                i += 1
+        return i
+
+    return None
+
+
+def _dize_sonu(metin: str, konum: int) -> int:
+    """Dize veya karakter sabitinin bitişinden sonraki konumu döner."""
+    if metin[konum:konum + 3] == '"""':
+        # ! Ham dizede bitiş, tırnak dizisinin SON üçlüsüdür; fazladan tırnaklar içeriktir
+        i = konum + 3
+        while i < len(metin):
+            if metin[i] == '"':
+                j = i
+                while j < len(metin) and metin[j] == '"':
+                    j += 1
+                if j - i >= 3:
+                    return j
+                i = j
+                continue
+            i += 1
+
+        return len(metin)
+
+    tirnak = metin[konum]
+    i = konum + 1
+    while i < len(metin):
+        if metin[i] == "\\":
+            i += 2
+            continue
+        if metin[i] == tirnak:
+            return i + 1
+        i += 1
+
+    return len(metin)
+
+
+def denge_denetle(icerik: str) -> list[str]:
+    """Kotlin dosyasının parantez/ayraç dengesini yorum ve dizeleri gözeterek denetler."""
+    yigin  : list[tuple[str, int]] = []
+    hatalar: list[str] = []
+    eslesen = {")": "(", "]": "[", "}": "{"}
+    satir   = 1
+    i       = 0
+
+    while i < len(icerik):
+        karakter = icerik[i]
+
+        if karakter == "\n":
+            satir += 1
+            i += 1
+            continue
+
+        yorum = _yorum_sonu(icerik, i)
+        if yorum is not None:
+            satir += icerik.count("\n", i, yorum)
+            i = yorum
+            continue
+
+        if karakter in ('"', "'"):
+            bitis = _dize_sonu(icerik, i)
+            satir += icerik.count("\n", i, bitis)
+            i = bitis
+            continue
+
+        if karakter in "([{":
+            yigin.append((karakter, satir))
+        elif karakter in ")]}":
+            if not yigin or yigin[-1][0] != eslesen[karakter]:
+                hatalar.append(f"satır {satir} » beklenmeyen '{karakter}'")
+            else:
+                yigin.pop()
+
+        i += 1
+
+    for karakter, konum in yigin:
+        hatalar.append(f"satır {konum} » kapanmamış '{karakter}'")
+
+    return hatalar
+
+
 def deprecated_api_tara(icerik: str) -> list[tuple[str, str]]:
     """ERROR seviyesinde deprecated API kullanımını bulur (yorum satırları atlanır)."""
     bulgular: list[tuple[str, str]] = []
@@ -270,8 +368,13 @@ def eklenti_denetle(eklenti: Eklenti) -> list[tuple[str, str]]:
 
     # * Şablon yer tutucuları kalmış mı?
     for dosya in eklenti.kotlin_dosyalari:
-        if yer_tutucu := re.findall(r"__[A-Z_]+__", _oku(dosya)):
+        icerik = _oku(dosya)
+
+        if yer_tutucu := re.findall(r"__[A-Z_]+__", icerik):
             bulgular.append((HATA, f"{dosya.name} içinde doldurulmamış yer tutucu var: {', '.join(sorted(set(yer_tutucu)))}"))
+
+        for denge_hatasi in denge_denetle(icerik):
+            bulgular.append((HATA, f"{dosya.name} » ayraç dengesi bozuk (derlenemez) » {denge_hatasi}"))
 
     # * ERROR seviyesinde deprecated API kullanımı (derlemeyi kırar)
     for dosya in eklenti.kotlin_dosyalari:

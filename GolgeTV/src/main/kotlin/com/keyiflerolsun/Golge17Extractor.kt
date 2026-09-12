@@ -78,7 +78,7 @@ open class Golge17 : ExtractorApi() {
                     extractDataWithRegex("=window\\['atob'\\]\\(\"(.*?)\"", trim),
                     Base64.DEFAULT
                 )
-            }
+            )
             val extractMultipleDataWithRegex = extractMultipleDataWithRegex(
                 extractDataWithRegex("window.stnbnb=\\[(.*?)\\]", trim)!!
             )
