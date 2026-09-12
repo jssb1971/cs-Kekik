@@ -37,7 +37,7 @@ jobs:
         run: |
           chmod +x gradlew
           set -o pipefail
-          ./gradlew make makePluginsJson --console=plain 2>&1 | tee derleme.log
+          ./gradlew make makePluginsJson --continue --console=plain 2>&1 | tee derleme.log
 
       - name: Derleme Sonucu
         if: always()

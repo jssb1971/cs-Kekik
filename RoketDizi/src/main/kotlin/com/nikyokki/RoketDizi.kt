@@ -28,6 +28,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.nicehttp.cookies
 import com.lagradost.cloudstream3.Score
+import com.lagradost.cloudstream3.newEpisode
 import okhttp3.Interceptor
 import okhttp3.Response
 import org.jsoup.Jsoup

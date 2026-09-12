@@ -384,6 +384,19 @@ def import_duzenle(metin: str, rapor: Rapor) -> str:
         metin = import_ekle(metin, "import com.lagradost.cloudstream3.utils.ExtractorLinkType")
         rapor.degisim.append("import » ExtractorLinkType eklendi")
 
+    # ? newEpisode / newExtractorLink üst düzey (top-level) fonksiyonlardır, import şart
+    if "newEpisode(" in metin and not yildiz_cs and not re.search(r"^import com\.lagradost\.cloudstream3\.newEpisode\s*$", metin, re.MULTILINE):
+        metin = import_ekle(metin, "import com.lagradost.cloudstream3.newEpisode")
+        rapor.degisim.append("import » newEpisode eklendi")
+
+    if "newExtractorLink(" in metin and not yildiz_utils and not re.search(r"^import com\.lagradost\.cloudstream3\.utils\.newExtractorLink\s*$", metin, re.MULTILINE):
+        metin = import_ekle(metin, "import com.lagradost.cloudstream3.utils.newExtractorLink")
+        rapor.degisim.append("import » newExtractorLink eklendi")
+
+    if "newDrmExtractorLink(" in metin and not yildiz_utils and not re.search(r"^import com\.lagradost\.cloudstream3\.utils\.newDrmExtractorLink\s*$", metin, re.MULTILINE):
+        metin = import_ekle(metin, "import com.lagradost.cloudstream3.utils.newDrmExtractorLink")
+        rapor.degisim.append("import » newDrmExtractorLink eklendi")
+
     return metin
 
 
