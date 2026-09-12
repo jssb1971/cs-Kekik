@@ -1,0 +1,45 @@
+# Bu araç @keyiflerolsun tarafından | @KekikAkademi için yazılmıştır.
+# ! Derleyici.yml sadece master'a push'ta çalışır; bu iş akışı PR'ları ve elle tetiklemeyi derler.
+# ! Hiçbir yere yükleme yapmaz (builds dalına dokunmaz), sadece derlemeyi doğrular.
+name: Derleme Testi
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  DerlemeTesti:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depo Kontrolü
+        uses: actions/checkout@v4.2.2
+
+      - name: JDK 17 Ayarla
+        uses: actions/setup-java@v4.6.0
+        with:
+          distribution: adopt
+          java-version: 17
+
+      - name: Android SDK Ayarla
+        uses: android-actions/setup-android@v3.2.2
+
+      - name: Eklenti Denetimi
+        run: python3 ARACLAR/eklenti.py dogrula --ozet
+
+      - name: Eklentileri Derle
+        run: |
+          chmod +x gradlew
+          ./gradlew make makePluginsJson
+
+      - name: Derleme Sonucu
+        if: always()
+        run: |
+          echo "### Derleme çıktıları" >> $GITHUB_STEP_SUMMARY
+          ls -1 */build/*.cs3 2>/dev/null | wc -l | xargs -I{} echo "{} eklenti derlendi" >> $GITHUB_STEP_SUMMARY
