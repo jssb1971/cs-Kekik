@@ -37,7 +37,7 @@ jobs:
         run: |
           chmod +x gradlew
           set -o pipefail
-          ./gradlew make makePluginsJson 2>&1 | tee derleme.log
+          ./gradlew make makePluginsJson --console=plain 2>&1 | tee derleme.log
 
       - name: Derleme Sonucu
         if: always()
@@ -45,14 +45,21 @@ jobs:
           echo "### Derleme çıktıları" >> $GITHUB_STEP_SUMMARY
           echo "Derlenen eklenti: $(ls -1 */build/*.cs3 2>/dev/null | wc -l)" >> $GITHUB_STEP_SUMMARY
 
-      # ! Hata ayıklamayı kolaylaştırmak için hataları annotation olarak yayınla
+      # ! Hata ayıklamayı kolaylaştırmak için derleme çıktısındaki hataları annotation olarak yayınla
       - name: Hataları Bildir
         if: failure()
         run: |
+          bildir() {
+            satir=$(printf '%s' "$1" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | cut -c1-500)
+            echo "::error::${satir}"
+          }
+
           {
             echo "### Derleme hataları"
-            grep -E "^e: |^w: .*[Ee]rror|error:|FAILURE:|What went wrong|Execution failed" derleme.log | head -40 || true
+            grep -E "^e: " derleme.log | head -30 || true
+            echo "--- son 25 satır ---"
+            tail -25 derleme.log
           } >> $GITHUB_STEP_SUMMARY
-          grep -E "^e: " derleme.log | head -15 | while IFS= read -r satir; do
-            echo "::error::${satir}"
-          done
+
+          grep -E "^e: " derleme.log | head -15 | while IFS= read -r satir; do bildir "$satir"; done
+          tail -25 derleme.log | while IFS= read -r satir; do [ -n "$satir" ] && bildir "SON » $satir"; done
