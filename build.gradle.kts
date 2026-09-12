@@ -14,7 +14,7 @@ buildscript {
         // Cloudstream gradle plugin which makes everything work and builds plugins
         // ! JitPack'te master-SNAPSHOT metadata'sı bozuk; çalışan sürüme pinlendi
         classpath("com.github.recloudstream:gradle:81b1d424d2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20")
     }
 }
 
