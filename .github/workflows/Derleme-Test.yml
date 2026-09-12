@@ -31,7 +31,7 @@ jobs:
         uses: android-actions/setup-android@v3.2.2
 
       - name: Eklenti Denetimi
-        run: python3 ARACLAR/eklenti.py dogrula --ozet
+        run: python3 ARACLAR/eklenti.py dogrula
 
       - name: Eklentileri Derle
         run: |
