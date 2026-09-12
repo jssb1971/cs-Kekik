@@ -36,6 +36,7 @@ import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
+import kotlinx.coroutines.runBlocking
 
 class WebteIzle : MainAPI() {
     override var mainUrl              = "https://webteizle.info"
@@ -269,19 +270,21 @@ class WebteIzle : MainAPI() {
                 if (iframe != null) {
                     Log.d("WBTI", "iframe » $iframe")
                     loadExtractor(iframe, "${mainUrl}/", subtitleCallback) { link ->
-                        callback.invoke(
-                            newExtractorLink(
-                                source = "$dilAd - ${link.name}",
-                                name   = "$dilAd - ${link.name}",
-                                url    = link.url,
-                                type   = link.type,
-                            ) {
-                                this.referer = link.referer
-                                this.quality = link.quality
-                                this.headers = link.headers
-                                this.extractorData = link.extractorData
-                            }
-                        )
+                        runBlocking {
+                            callback.invoke(
+                                newExtractorLink(
+                                    source = "$dilAd - ${link.name}",
+                                    name   = "$dilAd - ${link.name}",
+                                    url    = link.url,
+                                    type   = link.type,
+                                ) {
+                                    this.referer = link.referer
+                                    this.quality = link.quality
+                                    this.headers = link.headers
+                                    this.extractorData = link.extractorData
+                                }
+                            )
+                        }
                     }
                 }
             }

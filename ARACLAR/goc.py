@@ -35,6 +35,18 @@ ATLANANLAR = {".git", "build", ".gradle", "ARACLAR", "__Temel"}
 # ? newExtractorLink parametresi yerine lambda gövdesine yazılacak alanlar
 LAMBDA_ALANLARI = ("referer", "quality", "headers", "extractorData")
 
+# ? Lambda alıcılarının (ExtractorLink/Episode) üyeleri: gövdeye taşınan ifadede
+# ? bu adlara `this.` ile erişilirse alıcı değişir, o yüzden elle incelemeye bırakılır
+EXTRACTORLINK_UYELERI = {
+    "source", "name", "url", "referer", "quality", "headers",
+    "extractorData", "type", "audioTracks", "isM3u8", "isDash", "videoSize",
+}
+
+EPISODE_UYELERI = {
+    "data", "name", "season", "episode", "posterUrl", "score",
+    "description", "date", "runTime", "rating",
+}
+
 # ? Eski/yeni ExtractorLink konumsal argüman sırası
 KONUMSAL_ALANLAR = ("source", "name", "url", "referer", "quality", "isM3u8", "headers", "extractorData", "isDash")
 
@@ -304,6 +316,23 @@ def alan_goc(metin: str, rapor: Rapor) -> str:
     return yeni
 
 
+def govde_ifadesi(deger: str, alanlar: set[str], rapor: Rapor) -> str:
+    """Lambda gövdesine taşınan ifadedeki dış sınıf `this.` ekini kaldırır.
+
+    Lambda içinde `this` artık ExtractorLink/Episode olduğu için dış sınıf üyeleri
+    niteliksiz kullanılmalıdır. Ada çakışması varsa elle incelemeye bırakılır.
+    """
+    def degistir(eslesme: re.Match[str]) -> str:
+        ad = eslesme.group(1)
+        if ad in alanlar:
+            rapor.atlanan.append(f"gövde » 'this.{ad}' lambda üyesiyle çakışıyor » elle bakılmalı")
+            return eslesme.group(0)
+
+        return ad
+
+    return re.sub(r"\bthis\.(\w+)", degistir, deger)
+
+
 def extractor_link_goc(metin: str, rapor: Rapor) -> str:
     """`ExtractorLink(...)` » `newExtractorLink(...) { ... }`"""
     desen = re.compile(r"(?<![\w.])ExtractorLink\s*\(")
@@ -339,7 +368,10 @@ def extractor_link_goc(metin: str, rapor: Rapor) -> str:
         if "isDash" in adli and adli.pop("isDash").lower() == "true":
             tip = "ExtractorLinkType.DASH"
 
-        govde = [f"this.{alan} = {adli.pop(alan)}" for alan in LAMBDA_ALANLARI if alan in adli]
+        govde = [
+            f"this.{alan} = {govde_ifadesi(adli.pop(alan), EXTRACTORLINK_UYELERI, rapor)}"
+            for alan in LAMBDA_ALANLARI if alan in adli
+        ]
 
         kaynak, ad, adres = adli.pop("source"), adli.pop("name"), adli.pop("url")
 
@@ -394,7 +426,10 @@ def episode_goc(metin: str, rapor: Rapor) -> str:
             continue
 
         veri  = adli.pop("data")
-        govde = [f"this.{anahtar} = {deger}" for anahtar, deger in adli.items()]
+        govde = [
+            f"this.{anahtar} = {govde_ifadesi(deger, EPISODE_UYELERI, rapor)}"
+            for anahtar, deger in adli.items()
+        ]
 
         girinti  = girinti_bul(metin, eslesme.start())
         satirlar = [f"newEpisode({veri}) {{", *[f"    {satir}" for satir in govde], "}"]

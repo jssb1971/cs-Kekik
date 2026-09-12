@@ -14,6 +14,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONException
 import org.json.JSONObject
+import kotlinx.coroutines.runBlocking
 
 class InatBox : MainAPI() {
     private val contentUrl  = "https://dizibox.rest"
@@ -373,18 +374,20 @@ class InatBox : MainAPI() {
 
         val extractorFound =
             loadExtractor(sourceUrl, headers["Referer"], subtitleCallback){
-                callback.invoke(
-                    newExtractorLink(
-                        source = it.source,
-                        name   = contentToProcess.chName,
-                        url    = it.url,
-                        type   = it.type,
-                    ) {
-                        this.referer = it.referer
-                        this.quality = it.quality
-                        this.headers = it.headers
-                    }
-                )
+                runBlocking {
+                    callback.invoke(
+                        newExtractorLink(
+                            source = it.source,
+                            name   = contentToProcess.chName,
+                            url    = it.url,
+                            type   = it.type,
+                        ) {
+                            this.referer = it.referer
+                            this.quality = it.quality
+                            this.headers = it.headers
+                        }
+                    )
+                }
             }
 
         //When no extractor found, try to load as generic
